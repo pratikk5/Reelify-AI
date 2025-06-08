@@ -49,4 +49,4 @@ def gallery():
     print(reels)
     return render_template("gallery.html", reels=reels)
 
-    app.run(host="0.0.0.0", port=port)
+app.run(debug=True)
