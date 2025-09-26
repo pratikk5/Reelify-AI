@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Create Reel - AI Reel Generator{% endblock %}
+
+{% block extra_css %} 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="upload-section">
+    <div class="container">
+        <div class="upload-container">
+            <h1 class="upload-title">Create Your Reel</h1>
+            <p class="upload-instructions">Upload your video files to create an amazing reel. You can upload multiple files.</p>
+            
+            <form action="/create" enctype="multipart/form-data" method="post" id="uploadForm">
+                <input name="uuid" type="hidden" value="{{myid}}">
+                <input id="fileInput" name="files" type="file" accept="image/*" multiple style="display:none;" />
+                <div id="dropArea" class="drop-area">
+                    <div class="drop-area-message">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Drag & drop images here, or click to select</p>
+                        <small>PNG, JPG, JPEG — upload multiple at once</small>
+                    </div>
+                </div>
+                <div id="previews" class="previews"></div>
+                
+                <div class="text-input-container">
+                    <textarea class="text-input" id="textInput" name="text" placeholder="Enter your text to be added as voice here..." rows="4"></textarea>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Create Reel
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        // Prevent any 3rd-party Dropzone auto-binding if present
+        if (window.Dropzone) { try { window.Dropzone.autoDiscover = false; } catch (e) {} }
+
+        // Prevent page-level drops from causing unintended behavior
+        ['dragover','drop'].forEach(eventName => {
+            window.addEventListener(eventName, function(e){ e.preventDefault(); }, false);
+            document.addEventListener(eventName, function(e){ e.preventDefault(); }, false);
+        });
+
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const previews = document.getElementById('previews');
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'));
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('highlight'));
+        });
+
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = Array.from(dt.files || []);
+            addFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            addFiles(Array.from(e.target.files || []));
+        });
+
+        function addFiles(newFiles) {
+            const images = newFiles.filter(f => /^image\//.test(f.type));
+            if (!images.length) return;
+
+            const current = Array.from(fileInput.files || []);
+            // De-duplicate by filename to avoid doubles
+            const nameSet = new Set(current.map(f => f.name));
+            const merged = current.slice();
+            images.forEach(f => { if (!nameSet.has(f.name)) merged.push(f); });
+            const dataTransfer = new DataTransfer();
+            merged.forEach(f => dataTransfer.items.add(f));
+            fileInput.files = dataTransfer.files;
+            renderPreviews();
+        }
+
+        function renderPreviews() {
+            previews.innerHTML = '';
+            Array.from(fileInput.files || []).forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+
+                const img = document.createElement('img');
+                img.className = 'preview-thumb';
+                img.alt = file.name;
+                const reader = new FileReader();
+                reader.onload = (e) => { img.src = e.target.result; };
+                reader.readAsDataURL(file);
+
+                const meta = document.createElement('div');
+                meta.className = 'preview-meta';
+                meta.textContent = file.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-file-btn';
+                removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => removeAt(index));
+
+                item.appendChild(img);
+                item.appendChild(meta);
+                item.appendChild(removeBtn);
+                previews.appendChild(item);
+            });
+        }
+
+        function removeAt(index) {
+            const files = Array.from(fileInput.files || []);
+            files.splice(index, 1);
+            const dt = new DataTransfer();
+            files.forEach(f => dt.items.add(f));
+            fileInput.files = dt.files;
+            renderPreviews();
+        }
+    })();
+</script>
+{% endblock %} 
