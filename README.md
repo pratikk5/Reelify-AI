@@ -74,4 +74,4 @@ done.txt
 
 
 
-**Made with ❤️ using Flask and AI!**
+**Made with ❤️ using Flask and AI! for Content Creators**
